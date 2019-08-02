@@ -1,0 +1,14 @@
+apply from: "$rootDir/common-library.gradle"
+
+dependencies {
+    def domainDependencies = rootProject.ext.domainDependencies
+    def domainTestDependencies = rootProject.ext.domainTestDependencies
+
+    domainDependencies.each{
+        add(it.configuration, it.dependency)
+    }
+
+    domainTestDependencies.each{
+        add(it.configuration, it.dependency)
+    }
+}

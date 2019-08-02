@@ -1,0 +1,14 @@
+apply from: "$rootDir/common-library.gradle"
+apply plugin: 'kotlin-kapt'
+dependencies{
+    def presentationDependencies = rootProject.ext.presentationDependencies
+    def presentationTestDependencies = rootProject.ext.presentationTestDependencies
+
+    presentationDependencies.each{
+        add(it.configuration, it.dependency)
+    }
+
+    presentationTestDependencies.each{
+        add(it.configuration, it.dependency)
+    }
+}
