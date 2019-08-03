@@ -5,18 +5,20 @@ import android.content.pm.PackageManager
 
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import io.github.luizgrp.sectionedrecyclerviewadapter.SectionedRecyclerViewAdapter
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kpk.dev.model.contentresolver.CalendarContentResolver
-import kpk.dev.model.poko.Calendar
 import kpk.dev.model.poko.ScheduledEvent
 import kpk.dev.presentation.R
+import kpk.dev.presentation.utils.DateUIUtils
+import kpk.dev.presentation.utils.EventsListUtils
 import kpk.dev.presentation.view.base.BaseActivity
-import kpk.dev.presentation.view.main.adapter.DaySection
+import kpk.dev.presentation.view.main.adapter.EventsAdapter
+import org.joda.time.DateTime
 import org.zakariya.stickyheaders.StickyHeaderLayoutManager
+import java.util.*
 import javax.inject.Inject
 
 class MainActivity: BaseActivity() {
@@ -24,52 +26,40 @@ class MainActivity: BaseActivity() {
     @Inject
     internal lateinit var calendarContentResolver: CalendarContentResolver
 
-    private val sectionedRecyclerViewAdapter: StickyHeaderSectionedRecyclerViewAdapter by lazy {
-        StickyHeaderSectionedRecyclerViewAdapter()
+    @Inject
+    internal lateinit var dateUIUtils: DateUIUtils
+    @Inject
+    internal lateinit var eventsListUtils: EventsListUtils
+
+    private val sectionedRecyclerViewAdapter: EventsAdapter by lazy {
+        EventsAdapter(dateUIUtils)
     }
 
 
     override fun onResume() {
         super.onResume()
-        var calendarMap: MutableMap<Calendar, Map<String, MutableList<ScheduledEvent>>> = mutableMapOf()
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED){
-            Observable.just(calendarContentResolver.getScheduleData(true))
+            Observable.just(calendarContentResolver.getEventsInTimeSpan(10, 10))
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .map { t ->
-                        val daysMap: MutableMap<String, MutableList<ScheduledEvent>> = mutableMapOf()
-                        val calendars = t.keys
-
-                        for(calendar in calendars) {
-                            val daysMapByCalendar = t[calendar]
-                            for(day: String in daysMapByCalendar!!.keys) {
-                                if(daysMap.containsKey(day)){
-                                    daysMap[day]!!.addAll(daysMapByCalendar[day] ?: error(""))
-                                } else {
-                                    daysMap[day] = daysMapByCalendar[day] ?: error("")
-                                }
-                            }
-                        }
-
-                        return@map daysMap
-                    }.doOnNext{t ->
+                    .doOnNext{t ->
                         setUpAdapterData(t)
                     }
 
                     .subscribe()
 
         }else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALENDAR), 666)
+            //ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALENDAR), 666)
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_CALENDAR), 667)
         }
     }
 
-    private fun setUpAdapterData(daysMap: MutableMap<String, MutableList<ScheduledEvent>>) {
+    private fun setUpAdapterData(daysMap: TreeMap<Long, MutableList<ScheduledEvent>>) {
         rv_events_by_day.layoutManager = StickyHeaderLayoutManager()
-        for(day in daysMap.keys) {
-            sectionedRecyclerViewAdapter.addSection(DaySection(day, daysMap[day]!!))
-        }
+        sectionedRecyclerViewAdapter.data = daysMap
         rv_events_by_day.adapter = sectionedRecyclerViewAdapter
+
+        rv_events_by_day.scrollToPosition(sectionedRecyclerViewAdapter.getAdapterPositionForSectionHeader(eventsListUtils.getPositionOfNearestGreaterOrEqualDayWithEvents(DateTime.now(), daysMap)))
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
