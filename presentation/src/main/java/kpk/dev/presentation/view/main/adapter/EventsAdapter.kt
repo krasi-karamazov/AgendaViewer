@@ -23,14 +23,12 @@ class EventsAdapter constructor(val dateUIUtils: DateUIUtils): SectioningAdapter
             generateSections(value)
         }
 
-
     private fun generateSections(newData: Map<Long, MutableList<ScheduledEvent>>) {
-        if(this.sections.isNotEmpty()){
-            this.sections.clear()
-        }
         for(key in newData.keys) {
-            sections.add(Section(key, newData[key]!!))
+            sections.add(Section(key, newData[key] ?: error("")))
         }
+        sections.sortBy { it.dayInMillis }
+
         notifyAllSectionsDataSetChanged()
     }
 

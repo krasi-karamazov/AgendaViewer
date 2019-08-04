@@ -26,10 +26,7 @@ class DateUIUtils @Inject constructor() {
         return if(dataMap.containsKey(today.millis)) {
             today.millis
         }else{
-            dataMap.ceilingKey(DateTime().withHourOfDay(0)
-                    .withMinuteOfHour(0)
-                    .withSecondOfMinute(0)
-                    .withMillisOfSecond(0).millis)
+            dataMap.ceilingKey(today.millis)
         }
 
     }

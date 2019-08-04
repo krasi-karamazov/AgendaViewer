@@ -48,12 +48,11 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
         return calendars
     }
 
-    fun getEventsInTimeSpan(daysBeforeNow: Int, daysAfterNow:Int): TreeMap<Long, MutableList<ScheduledEvent>> {
+    fun getEventsInTimeSpan(fromDay: DateTime, toDay:DateTime): TreeMap<Long, MutableList<ScheduledEvent>> {
         val daysMap: TreeMap<Long, MutableList<ScheduledEvent>> = TreeMap()
-        val now: DateTime = DateTime.now()
         val instancesUriBuilder: Uri.Builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
-        ContentUris.appendId(instancesUriBuilder, now.millis - (DAY_IN_MILLIS * daysBeforeNow))
-        ContentUris.appendId(instancesUriBuilder, now.millis + (DAY_IN_MILLIS * daysAfterNow))
+        ContentUris.appendId(instancesUriBuilder, fromDay.millis)//now.millis - (DAY_IN_MILLIS * daysBeforeNow))
+        ContentUris.appendId(instancesUriBuilder, toDay.millis)//now.millis + (DAY_IN_MILLIS * daysAfterNow))
         val instancesUri = instancesUriBuilder.build()
         val cursor: Cursor? = contentResolver.query(instancesUri, eventsProjection,  CalendarContract.Instances.VISIBLE + " = 1", null, CalendarContract.Instances.BEGIN)
 

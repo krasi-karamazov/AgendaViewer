@@ -12,7 +12,7 @@
     <!-- Agenda day item text color  -->
     <color name="agenda_day_item_text_color">#FF666666</color>
     <!-- Text color of non-declined events in agenda view -->
-    <color name="agenda_item_standard_color">#FF333333</color>
+    <color name="agenda_item_standard_color">#000000</color>
     <!-- Color of the event location's text in an agenda item  -->
     <color name="agenda_item_where_text_color">#FF666666</color>
 

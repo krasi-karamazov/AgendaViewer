@@ -39,7 +39,8 @@ class MainActivity: BaseActivity() {
     override fun onResume() {
         super.onResume()
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED){
-            Observable.just(calendarContentResolver.getEventsInTimeSpan(10, 10))
+            val now = DateTime.now()
+            Observable.just(calendarContentResolver.getEventsInTimeSpan(now.minusDays(10), now.plusDays(10)))
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .doOnNext{t ->
@@ -59,6 +60,19 @@ class MainActivity: BaseActivity() {
         sectionedRecyclerViewAdapter.data = daysMap
         rv_events_by_day.adapter = sectionedRecyclerViewAdapter
 
+        rv_events_by_day.scrollToPosition(sectionedRecyclerViewAdapter.getAdapterPositionForSectionHeader(eventsListUtils.getPositionOfNearestGreaterOrEqualDayWithEvents(DateTime.now(), daysMap)))
+        Observable.just(calendarContentResolver.getEventsInTimeSpan(DateTime(daysMap.keys.toLongArray()[0]).minusDays(20), DateTime(daysMap.keys.toLongArray()[0]).minusDays(1)))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext{t ->
+                    addTobeginnigOfAdapter(t)
+                }
+
+                .subscribe()
+    }
+
+    private fun addTobeginnigOfAdapter(daysMap: TreeMap<Long, MutableList<ScheduledEvent>>) {
+        sectionedRecyclerViewAdapter.data = daysMap
         rv_events_by_day.scrollToPosition(sectionedRecyclerViewAdapter.getAdapterPositionForSectionHeader(eventsListUtils.getPositionOfNearestGreaterOrEqualDayWithEvents(DateTime.now(), daysMap)))
     }
 
