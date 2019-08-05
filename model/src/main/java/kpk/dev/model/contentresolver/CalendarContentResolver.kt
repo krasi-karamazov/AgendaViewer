@@ -65,7 +65,7 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
             usedCursor?.let {
                 while (it.moveToNext()) {
                     val id = it.getInt(it.getColumnIndex(CalendarContract.Instances._ID))
-                    val title = it.getString(it.getColumnIndex(CalendarContract.Instances.TITLE))
+                    val title = it.getString(it.getColumnIndex(CalendarContract.Instances.TITLE)) ?: ""
                     val description = it.getString(it.getColumnIndex(CalendarContract.Instances.DESCRIPTION)) ?: ""
                     val dtStart = it.getLong(it.getColumnIndex(CalendarContract.Instances.BEGIN))
                     val dtEnd = it.getLong(it.getColumnIndex(CalendarContract.Instances.END))
