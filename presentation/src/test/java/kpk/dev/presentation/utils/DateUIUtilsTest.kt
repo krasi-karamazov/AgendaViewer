@@ -19,8 +19,8 @@ class DateUIUtilsTest {
     }
 
     @Test
-    fun `when the argument is 0 getDayNameByIndex returns Sunday`() {
-        val result = dateUIUtils?.getDayNameByIndex(0)
+    fun `when the argument is 7 getDayNameByIndex returns Sunday`() {
+        val result = dateUIUtils?.getDayNameByIndex(7)
         assertEquals("Sunday", result)
     }
 

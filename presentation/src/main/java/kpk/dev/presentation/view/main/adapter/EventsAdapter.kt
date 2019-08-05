@@ -15,22 +15,41 @@ import org.joda.time.DateTime
 import org.zakariya.stickyheaders.SectioningAdapter
 
 
-class EventsAdapter constructor(val dateUIUtils: DateUIUtils): SectioningAdapter() {
+class EventsAdapter constructor(private val dateUIUtils: DateUIUtils): SectioningAdapter() {
     private var sections: MutableList<Section> = mutableListOf()
-    var data: Map<Long, MutableList<ScheduledEvent>> = mapOf()
-        set(value){
-            field = value
-            generateSections(value)
-        }
 
-    private fun generateSections(newData: Map<Long, MutableList<ScheduledEvent>>) {
-        for(key in newData.keys) {
-            sections.add(Section(key, newData[key] ?: error("")))
-        }
-        sections.sortBy { it.dayInMillis }
-
-        notifyAllSectionsDataSetChanged()
+    fun addNewData(data: Map<Long, MutableList<ScheduledEvent>>, olderDates:Boolean, initial: Boolean) {
+        generateSections(data, olderDates, initial)
     }
+
+
+    private fun generateSections(newData: Map<Long, MutableList<ScheduledEvent>>, olderDates: Boolean, initial:Boolean) {
+        val newSections = mutableListOf<Section>()
+        for(key in newData.keys) {
+            newSections.add(Section(key, newData[key] ?: error("")))
+        }
+        if(initial){
+            sections.addAll(newSections)
+
+            notifyAllSectionsDataSetChanged()
+            return
+        }
+
+
+        if(olderDates) {
+            for(i in newSections.size - 1 downTo 0) {
+                sections.add(0, newSections[i])
+                notifySectionInserted(0)
+            }
+        }else {
+            for(i in 0 until newSections.size - 1) {
+                sections.add(newSections[i])
+                notifySectionInserted(sections.size - 1)
+            }
+        }
+    }
+
+    fun getHeaderDataAtPosition(position: Int): Long = this.sections[position].dayInMillis
 
     override fun getNumberOfSections(): Int = sections.size
 

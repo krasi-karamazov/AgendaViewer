@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AgendaViewer</string>
+    <string name="add_event">Add Event</string>
 </resources>
