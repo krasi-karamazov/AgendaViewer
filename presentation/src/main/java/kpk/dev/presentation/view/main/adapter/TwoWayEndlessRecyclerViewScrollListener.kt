@@ -38,6 +38,10 @@ abstract class TwoWayEndlessRecyclerViewScrollListener constructor(recyclerView:
         }
     }
 
+    public fun noMoreItems() {
+        loading = false
+    }
+
     abstract fun onLoadNext()
     abstract fun onLoadPrevious()
 }

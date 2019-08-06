@@ -2,15 +2,12 @@ package kpk.dev.presentation.view.main.view
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
-import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kpk.dev.model.contentresolver.CalendarContentResolver
 import kpk.dev.model.poko.Calendar
@@ -18,8 +15,8 @@ import kpk.dev.model.poko.ScheduledEvent
 import kpk.dev.presentation.R
 import kpk.dev.presentation.utils.DateUIUtils
 import kpk.dev.presentation.utils.EventsListUtils
-import kpk.dev.presentation.utils.SingleLiveEvent
 import kpk.dev.presentation.view.base.BaseActivity
+import kpk.dev.presentation.view.eventdetails.EventDetailsFragment
 import kpk.dev.presentation.view.main.adapter.EventsAdapter
 import kpk.dev.presentation.view.main.adapter.TwoWayEndlessRecyclerViewScrollListener
 import kpk.dev.presentation.view.main.viewmodel.MainViewModel
@@ -45,14 +42,18 @@ class MainActivity: BaseActivity() {
     private lateinit var viewModel: MainViewModel
 
     private var calendars: Set<Calendar>? = null
-    private lateinit var eventsLiveData: SingleLiveEvent<TreeMap<Long, MutableList<ScheduledEvent>>>
     private var fromDay: DateTime = DateTime.now().minusDays(20)
     private var toDay: DateTime = DateTime.now().plusDays(20)
     private var initialLoad: Boolean = true
     private var olderDates: Boolean = false
+    private lateinit var scrollListener: TwoWayEndlessRecyclerViewScrollListener
+    private val calendarPermissionsRequestCode = 667
 
     private val initialObserver: Observer<TreeMap<Long, MutableList<ScheduledEvent>>> = Observer {
         sectionedRecyclerViewAdapter.addNewData(it, olderDates, initialLoad)
+        if(it.size == 0) {
+            scrollListener.noMoreItems()
+        }
         setupList()
         if(initialLoad) {
             rv_events_by_day.scrollToPosition(sectionedRecyclerViewAdapter.getAdapterPositionForSectionHeader(eventsListUtils.getPositionOfNearestGreaterOrEqualDayWithEvents(DateTime.now(), it)))
@@ -60,15 +61,19 @@ class MainActivity: BaseActivity() {
     }
 
     private val sectionedRecyclerViewAdapter: EventsAdapter by lazy {
-        EventsAdapter(dateUIUtils) { event -> {}}
+        EventsAdapter(dateUIUtils) { event ->
+            run {
+                val args = Bundle()
+                args.putParcelable(EventDetailsFragment.EVENT_ARG_KEY, event)
+                EventDetailsFragment.getInstance(args).show(supportFragmentManager, EventDetailsFragment.javaClass.simpleName)
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
     }
-
-    private val CALENDAR_PERMISSIONS_REQUEST_CODE = 667
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when(item?.itemId){
@@ -91,17 +96,16 @@ class MainActivity: BaseActivity() {
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED){
             addNewAdapterData(fromDay, toDay, false, true)
         }else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR), CALENDAR_PERMISSIONS_REQUEST_CODE)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR), calendarPermissionsRequestCode)
         }
     }
 
-    fun setupList() {
+    private fun setupList() {
         if(rv_events_by_day.adapter == null) {
             val layoutManager = StickyHeaderLayoutManager()
             rv_events_by_day.layoutManager = layoutManager
             rv_events_by_day.adapter = sectionedRecyclerViewAdapter
-
-            rv_events_by_day.addOnScrollListener(object : TwoWayEndlessRecyclerViewScrollListener(rv_events_by_day) {
+            scrollListener = object : TwoWayEndlessRecyclerViewScrollListener(rv_events_by_day) {
                 override fun onLoadNext() {
                     fromDay = DateTime(sectionedRecyclerViewAdapter.getHeaderDataAtPosition(sectionedRecyclerViewAdapter.numberOfSections - 1 )).plusDays(1)
                     toDay = fromDay.plusDays(20)
@@ -113,11 +117,12 @@ class MainActivity: BaseActivity() {
                     toDay = fromDay.plusDays(20)
                     addNewAdapterData(fromDay, toDay, true, false)
                 }
-            })
+            }
+            rv_events_by_day.addOnScrollListener(scrollListener)
         }
     }
 
-    fun addNewAdapterData(startDay: DateTime, endDay: DateTime , olderDates: Boolean, initialLoad: Boolean) {
+    private fun addNewAdapterData(startDay: DateTime, endDay: DateTime , olderDates: Boolean, initialLoad: Boolean) {
         this.olderDates = olderDates
         this.initialLoad = initialLoad
         viewModel.getEvents(startDay, endDay).observe(this, initialObserver)
@@ -128,7 +133,7 @@ class MainActivity: BaseActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         when(requestCode) {
-            CALENDAR_PERMISSIONS_REQUEST_CODE -> {
+            calendarPermissionsRequestCode -> {
                 if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                     addNewAdapterData(fromDay, toDay, false, true)
                 } else {
