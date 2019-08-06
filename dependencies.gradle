@@ -26,6 +26,7 @@ ext {
     cardViewVersion = "1.0.0"
     jodaTimeVersion = "2.10.3"
     sectionedAdapterVersion = "0.7.10"
+    liveEventVersion = '1.0.1'
 
     //Testing
     jUnitVersion = '4.12'
@@ -81,7 +82,7 @@ ext {
             [configuration: "implementation", dependency: "androidx.cardview:cardview:$cardViewVersion"],
             [configuration: "implementation", dependency: "joda-time:joda-time:$jodaTimeVersion"],
             [configuration: "implementation", dependency: "org.zakariya.stickyheaders:stickyheaders:$sectionedAdapterVersion"],
-
+            [configuration: "implementation", dependency: "com.github.hadilq.liveevent:liveevent:$liveEventVersion"]
 
     ]
 

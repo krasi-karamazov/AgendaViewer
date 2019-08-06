@@ -6,6 +6,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.CalendarContract
 import android.util.Log
+import kpk.dev.model.poko.Attendee
 import kpk.dev.model.poko.Calendar
 import kpk.dev.model.poko.ScheduledEvent
 import org.joda.time.DateTime
@@ -14,28 +15,30 @@ import javax.inject.Inject
 
 class CalendarContentResolver @Inject constructor(val contentResolver: ContentResolver) {
 
-    companion object {
-        private const val DAY_IN_MILLIS = 86400000
-    }
-
     enum class EventDuration{
         HALFHOUR, HOUR
     }
 
     private val calendarsProjection = arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.NAME, CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, CalendarContract.Calendars.CALENDAR_COLOR, CalendarContract.Calendars.VISIBLE)
 
-    private val instancesProjection = arrayOf(CalendarContract.Instances._ID, CalendarContract.Instances.TITLE, CalendarContract.Instances.DESCRIPTION, CalendarContract.Instances.BEGIN, CalendarContract.Instances.END, CalendarContract.Instances.ALL_DAY, CalendarContract.Instances.DURATION, CalendarContract.Instances.EVENT_LOCATION, CalendarContract.Instances.CALENDAR_COLOR, CalendarContract.Instances.CALENDAR_DISPLAY_NAME, CalendarContract.Instances.HAS_ATTENDEE_DATA, CalendarContract.Instances.RRULE, CalendarContract.Instances.RDATE)
+    private val instancesProjection = arrayOf(CalendarContract.Instances._ID, CalendarContract.Instances.TITLE, CalendarContract.Instances.DESCRIPTION, CalendarContract.Instances.BEGIN, CalendarContract.Instances.END, CalendarContract.Instances.ALL_DAY, CalendarContract.Instances.DURATION, CalendarContract.Instances.EVENT_LOCATION, CalendarContract.Instances.CALENDAR_COLOR, CalendarContract.Instances.CALENDAR_DISPLAY_NAME, CalendarContract.Instances.HAS_ATTENDEE_DATA, CalendarContract.Instances.RRULE, CalendarContract.Instances.RDATE, CalendarContract.Instances.EVENT_ID)
+
+    private val attendeesProjection = arrayOf(
+            CalendarContract.Attendees._ID,
+            CalendarContract.Attendees.EVENT_ID,
+            CalendarContract.Attendees.ATTENDEE_NAME,
+            CalendarContract.Attendees.ATTENDEE_EMAIL,
+            CalendarContract.Attendees.ATTENDEE_TYPE,
+            CalendarContract.Attendees.ATTENDEE_RELATIONSHIP,
+            CalendarContract.Attendees.ATTENDEE_STATUS)
 
     private val calendarsUri = CalendarContract.Calendars.CONTENT_URI
-
-
-    private val eventsByCalendar: MutableMap<Calendar, Map<String, MutableList<ScheduledEvent>>> = mutableMapOf()
 
     fun getCalendars(): Set<Calendar> {
         val calendars = mutableSetOf<Calendar>()
         val cursor: Cursor? = contentResolver.query(calendarsUri, calendarsProjection, null, null, null)
-        cursor.use { usedCursor ->
-            usedCursor?.let {
+        cursor.use { calendarsCursor ->
+            calendarsCursor?.let {
                 if(it.count > 0) {
                     while(it.moveToNext()) {
                         val id = it.getString(it.getColumnIndex(CalendarContract.Calendars._ID))
@@ -61,10 +64,10 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
         val instancesUri = instancesUriBuilder.build()
         val cursor: Cursor? = contentResolver.query(instancesUri, instancesProjection,  CalendarContract.Instances.VISIBLE + " = 1", null, CalendarContract.Instances.BEGIN)
 
-        cursor.use { usedCursor ->
-            usedCursor?.let {
+        cursor.use { eventsCursor ->
+            eventsCursor?.let {
                 while (it.moveToNext()) {
-                    val id = it.getInt(it.getColumnIndex(CalendarContract.Instances._ID))
+                    val id = it.getLong(it.getColumnIndex(CalendarContract.Instances._ID))
                     val title = it.getString(it.getColumnIndex(CalendarContract.Instances.TITLE)) ?: ""
                     val description = it.getString(it.getColumnIndex(CalendarContract.Instances.DESCRIPTION)) ?: ""
                     val dtStart = it.getLong(it.getColumnIndex(CalendarContract.Instances.BEGIN))
@@ -77,8 +80,11 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
                     val hasAttendeeData = it.getInt(it.getColumnIndex(CalendarContract.Instances.HAS_ATTENDEE_DATA)) == 1
                     val rRule = it.getString(it.getColumnIndex(CalendarContract.Instances.RRULE))
                     val rDate = it.getString(it.getColumnIndex(CalendarContract.Instances.RDATE))
+                    val eventId = it.getLong(it.getColumnIndex(CalendarContract.Instances.EVENT_ID))
 
-                    val scheduledEvent = ScheduledEvent(id, title, description, dtStart, dtEnd, allDay, duration, location, calendarColor, calendarDisplayName, hasAttendeeData, rRule, rDate)
+                    val attendeesList: List<Attendee> = getAttendeesForEventId(eventId)
+
+                    val scheduledEvent = ScheduledEvent(id, title, description, dtStart, dtEnd, allDay, duration, location, calendarColor, calendarDisplayName, hasAttendeeData, rRule, rDate, eventId, attendeesList)
 
                     val eventDay = DateTime(dtStart)
                     val dayKey: Long = eventDay.withHourOfDay(0).withMinuteOfHour(0).millis
@@ -94,6 +100,30 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
         }
 
         return daysMap
+    }
+
+    private fun getAttendeesForEventId(eventId: Long): List<Attendee> {
+        val attendeesUri: Uri = CalendarContract.Attendees.CONTENT_URI
+        val query = "(" + CalendarContract.Attendees.EVENT_ID + " = ?)"
+        val args = arrayOf(eventId.toString())
+        val cursor: Cursor? = contentResolver.query(attendeesUri, attendeesProjection, query, args, null)
+        val attendees = mutableListOf<Attendee>()
+        cursor.use { attendeesCursor ->
+            attendeesCursor?.let {
+                while (it.moveToNext()) {
+                    val id = it.getLong(it.getColumnIndex(CalendarContract.Attendees._ID))
+                    val eventIdForAttendee = it.getLong(it.getColumnIndex(CalendarContract.Attendees.EVENT_ID))
+                    val attendeeName = it.getString(it.getColumnIndex(CalendarContract.Attendees.ATTENDEE_NAME))
+                    val attendeeEmail = it.getString(it.getColumnIndex(CalendarContract.Attendees.ATTENDEE_EMAIL))
+                    val attendeeType = it.getInt(it.getColumnIndex(CalendarContract.Attendees.ATTENDEE_TYPE))
+                    val attendeeRelationship = it.getInt(it.getColumnIndex(CalendarContract.Attendees.ATTENDEE_RELATIONSHIP))
+                    val attendeeStatus = it.getInt(it.getColumnIndex(CalendarContract.Attendees.ATTENDEE_STATUS))
+                    val attendee = Attendee(id, eventIdForAttendee, attendeeName, attendeeEmail, attendeeType, attendeeRelationship, attendeeStatus)
+                    attendees.add(attendee)
+                }
+            }
+        }
+        return attendees
     }
 
     fun getFirstFreeTimeSlot(duration: EventDuration, currentTime: DateTime) {

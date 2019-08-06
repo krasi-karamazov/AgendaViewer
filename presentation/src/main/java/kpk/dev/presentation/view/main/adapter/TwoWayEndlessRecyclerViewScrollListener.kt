@@ -6,7 +6,7 @@ abstract class TwoWayEndlessRecyclerViewScrollListener constructor(recyclerView:
 
     private var previousTotal = 0 //The total number of items in the dataset after the previous load
     private var loading = true // Set to true of still loading new data
-    private val visibleThreshold = 5 // The minimum items below/above the scroll line when we should initiate a new load
+    private val visibleThreshold = 10 // The minimum items below/above the scroll line when we should initiate a new load
     var firstVisibleItem: Int = 0
     var visibleItemCount:Int = 0
     var totalItemCount:Int = 0

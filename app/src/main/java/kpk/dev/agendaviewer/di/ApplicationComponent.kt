@@ -8,10 +8,11 @@ import kpk.dev.agendaviewer.AgendaViewerApplication
 import kpk.dev.model.di.ContentModule
 import kpk.dev.presentation.di.ActivityBuilder
 import kpk.dev.presentation.di.DisposableModule
+import kpk.dev.presentation.di.ViewModelModule
 import javax.inject.Singleton
 
 @Singleton
-@Component(modules = [AndroidInjectionModule::class, ActivityBuilder::class, DisposableModule::class, ApplicationModule::class, ContentModule::class])
+@Component(modules = [AndroidInjectionModule::class, ActivityBuilder::class, DisposableModule::class, ApplicationModule::class, ContentModule::class, ViewModelModule::class])
 interface ApplicationComponent {
     @Component.Builder
     interface Builder{

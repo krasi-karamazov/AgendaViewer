@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import kotlinx.android.synthetic.main.item_day_header.view.*
 import kotlinx.android.synthetic.main.item_event.view.*
 import kpk.dev.model.poko.ScheduledEvent
@@ -15,7 +14,7 @@ import org.joda.time.DateTime
 import org.zakariya.stickyheaders.SectioningAdapter
 
 
-class EventsAdapter constructor(private val dateUIUtils: DateUIUtils): SectioningAdapter() {
+class EventsAdapter constructor(private val dateUIUtils: DateUIUtils, val itemClickListener: (ScheduledEvent) -> Unit): SectioningAdapter() {
     private var sections: MutableList<Section> = mutableListOf()
 
     fun addNewData(data: Map<Long, MutableList<ScheduledEvent>>, olderDates:Boolean, initial: Boolean) {
@@ -65,32 +64,33 @@ class EventsAdapter constructor(private val dateUIUtils: DateUIUtils): Sectionin
     override fun onCreateItemViewHolder(parent: ViewGroup?, itemUserType: Int): ItemViewHolder = EventViewHolder(LayoutInflater.from(parent?.context).inflate(R.layout.item_event, parent, false))
 
     override fun onBindHeaderViewHolder(viewHolder: HeaderViewHolder?, sectionIndex: Int, headerUserType: Int) {
-        val headerDate = DateTime(sections[sectionIndex].dayInMillis)
-        (viewHolder as DayViewHolder).tvDay.text = dateUIUtils.getDayNameByIndex(headerDate.dayOfWeek)
-        viewHolder.tvDate.text = headerDate.toString("dd/MM/yyyy")
+        (viewHolder as DayViewHolder).bind(sections[sectionIndex])
     }
 
     override fun onBindItemViewHolder(viewHolder: ItemViewHolder?, sectionIndex: Int, itemIndex: Int, itemUserType: Int) {
-        val hexColor = String.format("#%06X", 0xFFFFFF and sections[sectionIndex].events[itemIndex].calendarColor)
-        (viewHolder as EventViewHolder).calendarColor.setBackgroundColor(Color.parseColor(hexColor))
-        viewHolder.title.text = sections[sectionIndex].events[itemIndex].title
-        val eventDate = DateTime(sections[sectionIndex].events[itemIndex].stStart)
-        viewHolder.tvWhen.text = eventDate.toString("dd/MM/yyyy HH:mm")
-        viewHolder.tvWhere.text = sections[sectionIndex].events[itemIndex].location
+        (viewHolder as EventViewHolder).bind(sections[sectionIndex].events[itemIndex], this.itemClickListener)
     }
 
-    private data class Section(val dayInMillis: Long, val events: MutableList<ScheduledEvent>)
+    data class Section(val dayInMillis: Long, val events: MutableList<ScheduledEvent>)
 
     inner class EventViewHolder(itemView: View): SectioningAdapter.ItemViewHolder(itemView) {
-        val calendarColor: View = itemView.agenda_item_color
-        val title: TextView = itemView.tv_title
-        val tvWhen: TextView = itemView.tv_when
-        val tvWhere: TextView = itemView.tv_where
+        fun bind(event: ScheduledEvent, listener: (ScheduledEvent) -> Unit) = with(itemView) {
+            val hexColor = String.format("#%06X", 0xFFFFFF and event.calendarColor)
+            itemView.agenda_item_color.setBackgroundColor(Color.parseColor(hexColor))
+            itemView.tv_title.text = event.title
+            val eventDate = DateTime(event.stStart)
+            itemView.tv_when.text = eventDate.toString("dd/MM/yyyy HH:mm")
+            itemView.tv_where.text = event.location
+            itemView.setOnClickListener {listener(event)}
+        }
     }
 
     inner class DayViewHolder(itemView: View): SectioningAdapter.HeaderViewHolder(itemView) {
-        val tvDay: TextView = itemView.tv_day
-        val tvDate: TextView = itemView.tv_date
+        fun bind(section: Section) = with(itemView) {
+            val headerDate = DateTime(section.dayInMillis)
+            itemView.tv_day.text = dateUIUtils.getDayNameByIndex(headerDate.dayOfWeek)
+            itemView.tv_date.text = headerDate.toString("dd/MM/yyyy")
+        }
     }
 
 }
