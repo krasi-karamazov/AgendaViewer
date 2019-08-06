@@ -1,14 +1,13 @@
 package kpk.dev.presentation.dialog
 
 import android.os.Bundle
-import android.view.View
 import androidx.appcompat.app.AlertDialog
 
-class ErrorDialog : BaseDialog() {
+class MessageDialog : BaseDialog() {
 
     companion object {
-        fun getInstance(args: Bundle): ErrorDialog {
-            val dialog = ErrorDialog()
+        fun getInstance(args: Bundle): MessageDialog {
+            val dialog = MessageDialog()
             dialog.arguments = args
             return dialog
         }
@@ -22,5 +21,5 @@ class ErrorDialog : BaseDialog() {
         dialogBuilder.setMessage(arguments?.getString(MESSAGE_ARG_KEY))
     }
 
-    override fun getDialogTag(): String = ErrorDialog::class.java.simpleName
+    override fun getDialogTag(): String = MessageDialog::class.java.simpleName
 }

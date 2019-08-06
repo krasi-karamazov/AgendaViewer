@@ -78,8 +78,7 @@ class EventsAdapter constructor(private val dateUIUtils: DateUIUtils, val itemCl
             val hexColor = String.format("#%06X", 0xFFFFFF and event.calendarColor)
             itemView.agenda_item_color.setBackgroundColor(Color.parseColor(hexColor))
             itemView.tv_title.text = event.title
-            val eventDate = DateTime(event.stStart)
-            itemView.tv_when.text = eventDate.toString("dd/MM/yyyy HH:mm")
+            itemView.tv_when.text = if(event.allDay) itemView.context.getString(R.string.all_day) else DateTime(event.stStart).toString("HH:mm") + " - " + DateTime(event.dtEnd).toString("HH:mm")
             itemView.tv_where.text = event.location
             itemView.setOnClickListener {listener(event)}
         }

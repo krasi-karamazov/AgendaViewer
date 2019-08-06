@@ -1,11 +1,11 @@
 package kpk.dev.model.contentresolver
 
+import android.annotation.SuppressLint
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.database.Cursor
 import android.net.Uri
 import android.provider.CalendarContract
-import android.util.Log
 import kpk.dev.model.poko.Attendee
 import kpk.dev.model.poko.Calendar
 import kpk.dev.model.poko.ScheduledEvent
@@ -34,6 +34,7 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
 
     private val calendarsUri = CalendarContract.Calendars.CONTENT_URI
 
+    @SuppressLint("MissingPermission")
     fun getCalendars(): Set<Calendar> {
         val calendars = mutableSetOf<Calendar>()
         val cursor: Cursor? = contentResolver.query(calendarsUri, calendarsProjection, null, null, null)
@@ -102,6 +103,7 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
         return daysMap
     }
 
+    @SuppressLint("MissingPermission")
     private fun getAttendeesForEventId(eventId: Long): List<Attendee> {
         val attendeesUri: Uri = CalendarContract.Attendees.CONTENT_URI
         val query = "(" + CalendarContract.Attendees.EVENT_ID + " = ?)"
@@ -126,8 +128,8 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
         return attendees
     }
 
-    fun getFirstFreeTimeSlot(duration: EventDuration, currentTime: DateTime) {
-        var now = currentTime
+    fun getFirstFreeTimeSlot(duration: EventDuration, currentTime: DateTime): DateTime {
+        var now = if(currentTime.hourOfDay > 20) currentTime.plusDays(1).withHourOfDay(8).withMinuteOfHour(0) else if (currentTime.hourOfDay < 8) currentTime.withHourOfDay(8).withMinuteOfHour(0) else currentTime
 
         now = if(duration == EventDuration.HALFHOUR) {
             if(now.minuteOfHour in 1..29) {
@@ -150,7 +152,7 @@ class CalendarContentResolver @Inject constructor(val contentResolver: ContentRe
             now = DateTime(availableSlot)
             availableSlot = getAvailableSlot(now, duration)
         }
-        Log.d("Found free slot at ",  now.toString())
+        return now
     }
 
     private fun getAvailableSlot(now: DateTime, duration: EventDuration): Long {

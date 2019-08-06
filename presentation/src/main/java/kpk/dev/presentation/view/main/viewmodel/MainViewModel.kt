@@ -5,22 +5,24 @@ import androidx.lifecycle.MutableLiveData
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
+import kpk.dev.domain.usecases.availability.GetAvailabilityUseCase
 import kpk.dev.domain.usecases.calendars.GetCalendarsUseCase
 import kpk.dev.domain.usecases.events.GetEventsUseCase
+import kpk.dev.model.contentresolver.CalendarContentResolver
 import kpk.dev.model.poko.Calendar
 import kpk.dev.model.poko.ScheduledEvent
-import kpk.dev.presentation.utils.SingleLiveEvent
 import kpk.dev.presentation.viewmodel.base.BaseViewModel
 import org.joda.time.DateTime
 import java.util.*
 import javax.inject.Inject
 
-class MainViewModel @Inject constructor(val calendarsUseCase: GetCalendarsUseCase, val eventsUseCase: GetEventsUseCase, override var compositeDisposable:CompositeDisposable): BaseViewModel(compositeDisposable) {
+class MainViewModel @Inject constructor(val calendarsUseCase: GetCalendarsUseCase, val eventsUseCase: GetEventsUseCase, val availabilityUseCase: GetAvailabilityUseCase, override var compositeDisposable:CompositeDisposable): BaseViewModel(compositeDisposable) {
     private var calendars: Set<Calendar>? = null
-    private val calendarsData: SingleLiveEvent<Set<Calendar>> = SingleLiveEvent()
+    private val calendarsData: MutableLiveData<Set<Calendar>> = MutableLiveData()
+    private val availabilityData: MutableLiveData<DateTime> = MutableLiveData()
     private val eventsLiveData: MutableLiveData<TreeMap<Long, MutableList<ScheduledEvent>>> = MutableLiveData()
 
-    fun getCalendars(): SingleLiveEvent<Set<Calendar>> {
+    fun getCalendars(): MutableLiveData<Set<Calendar>> {
         if(calendars != null) {
             calendarsData.postValue(calendars)
         }else{
@@ -41,6 +43,15 @@ class MainViewModel @Inject constructor(val calendarsUseCase: GetCalendarsUseCas
                 .subscribe())
 
         return eventsLiveData
+    }
+
+    fun getAvailableSlotForMeeting(duration: CalendarContentResolver.EventDuration): LiveData<DateTime> {
+        compositeDisposable.add(availabilityUseCase.getAvailableSlotForMeeting(duration)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .doOnNext{availabilityData.postValue(it)}
+                .subscribe())
+        return availabilityData
     }
 
 }

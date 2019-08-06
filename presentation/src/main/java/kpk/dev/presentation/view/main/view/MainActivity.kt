@@ -10,9 +10,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import kotlinx.android.synthetic.main.activity_main.*
 import kpk.dev.model.contentresolver.CalendarContentResolver
-import kpk.dev.model.poko.Calendar
 import kpk.dev.model.poko.ScheduledEvent
 import kpk.dev.presentation.R
+import kpk.dev.presentation.dialog.BaseDialog
+import kpk.dev.presentation.dialog.MessageDialog
 import kpk.dev.presentation.utils.DateUIUtils
 import kpk.dev.presentation.utils.EventsListUtils
 import kpk.dev.presentation.view.base.BaseActivity
@@ -41,15 +42,17 @@ class MainActivity: BaseActivity() {
 
     private lateinit var viewModel: MainViewModel
 
-    private var calendars: Set<Calendar>? = null
     private var fromDay: DateTime = DateTime.now().minusDays(20)
     private var toDay: DateTime = DateTime.now().plusDays(20)
     private var initialLoad: Boolean = true
     private var olderDates: Boolean = false
     private lateinit var scrollListener: TwoWayEndlessRecyclerViewScrollListener
     private val calendarPermissionsRequestCode = 667
+    private val menuHalfHourId = 30045
+    private val menuOneHourId = 30046
+    private lateinit var duration: CalendarContentResolver.EventDuration
 
-    private val initialObserver: Observer<TreeMap<Long, MutableList<ScheduledEvent>>> = Observer {
+    private val eventsObserver: Observer<TreeMap<Long, MutableList<ScheduledEvent>>> = Observer {
         sectionedRecyclerViewAdapter.addNewData(it, olderDates, initialLoad)
         if(it.size == 0) {
             scrollListener.noMoreItems()
@@ -60,34 +63,41 @@ class MainActivity: BaseActivity() {
         }
     }
 
+    private val availabilityObserver: Observer<DateTime> = Observer {
+        val args = Bundle()
+        val title: String = when(duration) {
+            CalendarContentResolver.EventDuration.HALFHOUR -> getString(R.string.half_hour_availability)
+            else -> getString(R.string.one_hour_availability)
+        }
+
+        args.putString(BaseDialog.TITLE_ARG_KEY, title)
+        args.putString(BaseDialog.MESSAGE_ARG_KEY, "Your next available slot is " + it.toString("dd/MM") + " at " + it.toString("HH:mm"))
+        MessageDialog.getInstance(args).show(supportFragmentManager, MessageDialog::class.java.simpleName)
+    }
+
     private val sectionedRecyclerViewAdapter: EventsAdapter by lazy {
         EventsAdapter(dateUIUtils) { event ->
             run {
                 val args = Bundle()
                 args.putParcelable(EventDetailsFragment.EVENT_ARG_KEY, event)
-                EventDetailsFragment.getInstance(args).show(supportFragmentManager, EventDetailsFragment.javaClass.simpleName)
+                EventDetailsFragment.getInstance(args).show(supportFragmentManager, EventDetailsFragment::class.java.simpleName)
             }
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
+        menu?.add(0, menuHalfHourId, 1, getString(R.string.half_hour_schedule))
+        menu?.add(0, menuOneHourId, 2, getString(R.string.one_hour_schedule))
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when(item?.itemId){
-            R.id.item_add_event -> {
-                /*Observable.just(calendarContentResolver.getFirstFreeTimeSlot(CalendarContentResolver.EventDuration.HALFHOUR, DateTime.now().withDayOfMonth(6).withHourOfDay(12).withMinuteOfHour(0)))
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .doOnNext{t ->
+            menuHalfHourId -> duration = CalendarContentResolver.EventDuration.HALFHOUR
 
-                        }
-
-                        .subscribe()*/
-            }
+            menuOneHourId -> duration = CalendarContentResolver.EventDuration.HOUR
         }
+        viewModel.getAvailableSlotForMeeting(duration).observe(this, availabilityObserver)
         return true
     }
 
@@ -125,7 +135,7 @@ class MainActivity: BaseActivity() {
     private fun addNewAdapterData(startDay: DateTime, endDay: DateTime , olderDates: Boolean, initialLoad: Boolean) {
         this.olderDates = olderDates
         this.initialLoad = initialLoad
-        viewModel.getEvents(startDay, endDay).observe(this, initialObserver)
+        viewModel.getEvents(startDay, endDay).observe(this, eventsObserver)
 
     }
 
@@ -145,7 +155,5 @@ class MainActivity: BaseActivity() {
         }
     }
 
-
     override fun getLayoutId(): Int = R.layout.activity_main
-
 }

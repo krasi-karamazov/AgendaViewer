@@ -1,5 +1,6 @@
 package kpk.dev.presentation.view.eventdetails
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -28,7 +29,7 @@ class EventDetailsFragment: DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NORMAL, R.style.FullScreenDialogStyle);
+        setStyle(STYLE_NORMAL, R.style.FullScreenDialogStyle)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -42,14 +43,14 @@ class EventDetailsFragment: DialogFragment() {
 
         event?.let {
             view.tv_event_title.text = event.title
-            val timeSTring = DateUIUtils_Factory.newInstance().getTimeStringForEvent(event.stStart, event.dtEnd, event.allDay)
-            view.tv_time.text = timeSTring
+            view.tv_time.text = DateUIUtils_Factory.newInstance().getTimeStringForEvent(event.stStart, event.dtEnd, event.allDay)
             view.tv_event_location.text = event.location
             view.tv_description.text = event.description
             view.iv_close.setOnClickListener { dismiss() }
             val adapter = AttendeesAdapter(event.attendees)
             view.rv_attendees.adapter = adapter
             view.rv_attendees.layoutManager = LinearLayoutManager(activity, RecyclerView.VERTICAL, false)
+            view.calendar_color.setBackgroundColor(Color.parseColor(String.format("#%06X", 0xFFFFFF and event.calendarColor)))
             ViewCompat.setNestedScrollingEnabled(view.rv_attendees, true)
         }
     }

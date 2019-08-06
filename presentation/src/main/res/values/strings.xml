@@ -3,4 +3,14 @@
     <string name="add_event">Add Event</string>
     <string name="description">Description</string>
     <string name="location">Location</string>
+    <string name="guests">Guests</string>
+    <string name="all_day">All Day</string>
+    <string name="half_hour">Half Hour</string>
+    <string name="one_hour">One hour</string>
+    <string name="half_hour_schedule">Schedule a Half Hour meeting</string>
+    <string name="one_hour_schedule">Schedule a One Hour meeting</string>
+    <string name="next_free_slot">Next available slot</string>
+    <string name="half_hour_availability">Availability for a half hour meeting</string>
+    <string name="one_hour_availability">Availability for a one hour meeting</string>
+    <string name="close_event_details">Close event details</string>
 </resources>
