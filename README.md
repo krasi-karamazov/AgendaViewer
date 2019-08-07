@@ -33,7 +33,7 @@ Below the Requirements are listed some TODOs that given time I would like to wor
 
 ∙ Work a bit on readability on some portions of the code
 
-∙ Implement extensive unit testing. Right now, because of time constraints, the unit tests are limited to just being a showcase of how I usually do them
+∙ Implement extensive unit testing. Right now, because of time constraints, the unit tests are limited to just being a showcase of how I usually do them. They can be found in the presentation module
 
 ∙ Spend more time manually testing
 
