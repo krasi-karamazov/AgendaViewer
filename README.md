@@ -1,5 +1,6 @@
 # AgendaViewer
-A simple agenda viewer which shows the events in all the device's calendars. The implemented requirements are marked as Done.
+A simple agenda viewer which shows the events in all the device's calendars. The app is modularized and is using teh Clean architecture for code structuring. Communication between components is implemented using the MVVM architecture.
+The implemented requirements are marked as Done.
 Below the Requirements are listed some TODOs that given time I would like to work on
 
 ### Requirements
