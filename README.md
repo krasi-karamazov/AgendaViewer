@@ -1,6 +1,8 @@
 # AgendaViewer
 A simple agenda viewer which shows the events in all the device's calendars. The app is modularized and is using the Clean architecture for code structuring. Communication between components is implemented using the MVVM architecture.
 
+The agenda list is bi-directional - it starts from the first day with events (now or in the future) and can go forward or backward in time until the CalendarProvider returns 0 items.
+
 The implemented requirements are marked as Done.
 Below the Requirements are listed some TODOs that given time I would like to work on
 
