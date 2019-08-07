@@ -22,7 +22,6 @@
             app:layout_constraintLeft_toLeftOf="parent"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:tint="@android:color/black"
-            android:contentDescription="@string/close_event_details"
             />
         <TextView
             android:id="@+id/tv_event_title"

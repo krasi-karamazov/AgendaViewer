@@ -12,5 +12,9 @@
     <string name="next_free_slot">Next available slot</string>
     <string name="half_hour_availability">Availability for a half hour meeting</string>
     <string name="one_hour_availability">Availability for a one hour meeting</string>
-    <string name="close_event_details">Close event details</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="permissions_rationale_title">We need permissions</string>
+    <string name="permissions_rationale_message">In order to function correctly this app needs access to your calendar. If you do not want to grant this permission tap on Cancel and the app will quit.</string>
+    <string name="permissions_dontask_again_rationale_message">In order to function correctly this app needs access to your calendar. If you wish to keep using the app tap the OK button and grant the permission on the next screen</string>
 </resources>

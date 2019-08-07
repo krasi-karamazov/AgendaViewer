@@ -14,6 +14,7 @@ import kpk.dev.model.poko.ScheduledEvent
 import kpk.dev.presentation.R
 import kpk.dev.presentation.dialog.BaseDialog
 import kpk.dev.presentation.dialog.MessageDialog
+import kpk.dev.presentation.dialog.PermissionsRationaleDialog
 import kpk.dev.presentation.utils.DateUIUtils
 import kpk.dev.presentation.utils.EventsListUtils
 import kpk.dev.presentation.view.base.BaseActivity
@@ -26,8 +27,12 @@ import org.joda.time.DateTime
 import org.zakariya.stickyheaders.StickyHeaderLayoutManager
 import java.util.*
 import javax.inject.Inject
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 
-class MainActivity: BaseActivity() {
+
+class MainActivity: BaseActivity(), PermissionsRationaleDialog.DialogListener {
 
     @Inject
     internal lateinit var calendarContentResolver: CalendarContentResolver
@@ -48,9 +53,11 @@ class MainActivity: BaseActivity() {
     private var olderDates: Boolean = false
     private lateinit var scrollListener: TwoWayEndlessRecyclerViewScrollListener
     private val calendarPermissionsRequestCode = 667
+    private val settingsActivityRequestCode = 668
     private val menuHalfHourId = 30045
     private val menuOneHourId = 30046
     private lateinit var duration: CalendarContentResolver.EventDuration
+    private val neededPermissions = arrayOf(Manifest.permission.READ_CALENDAR)
 
     private val eventsObserver: Observer<TreeMap<Long, MutableList<ScheduledEvent>>> = Observer {
         sectionedRecyclerViewAdapter.addNewData(it, olderDates, initialLoad)
@@ -103,10 +110,14 @@ class MainActivity: BaseActivity() {
 
     override fun init() {
         viewModel = vmFactory.get()
+        askForCalendarPermission()
+    }
+
+    private fun askForCalendarPermission() {
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED){
-            addNewAdapterData(fromDay, toDay, false, true)
+            fetchNewData(fromDay, toDay, olderDates = false, initialLoad = true)
         }else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR), calendarPermissionsRequestCode)
+            ActivityCompat.requestPermissions(this, neededPermissions, calendarPermissionsRequestCode)
         }
     }
 
@@ -119,20 +130,20 @@ class MainActivity: BaseActivity() {
                 override fun onLoadNext() {
                     fromDay = DateTime(sectionedRecyclerViewAdapter.getHeaderDataAtPosition(sectionedRecyclerViewAdapter.numberOfSections - 1 )).plusDays(1)
                     toDay = fromDay.plusDays(20)
-                    addNewAdapterData(fromDay, toDay, false, false)
+                    fetchNewData(fromDay, toDay, olderDates = false, initialLoad = false)
                 }
 
                 override fun onLoadPrevious() {
                     fromDay = DateTime(sectionedRecyclerViewAdapter.getHeaderDataAtPosition(0 )).minusDays(20)
                     toDay = fromDay.plusDays(20)
-                    addNewAdapterData(fromDay, toDay, true, false)
+                    fetchNewData(fromDay, toDay, olderDates = true, initialLoad = false)
                 }
             }
             rv_events_by_day.addOnScrollListener(scrollListener)
         }
     }
 
-    private fun addNewAdapterData(startDay: DateTime, endDay: DateTime , olderDates: Boolean, initialLoad: Boolean) {
+    private fun fetchNewData(startDay: DateTime, endDay: DateTime, olderDates: Boolean, initialLoad: Boolean) {
         this.olderDates = olderDates
         this.initialLoad = initialLoad
         viewModel.getEvents(startDay, endDay).observe(this, eventsObserver)
@@ -145,15 +156,53 @@ class MainActivity: BaseActivity() {
         when(requestCode) {
             calendarPermissionsRequestCode -> {
                 if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    addNewAdapterData(fromDay, toDay, false, true)
+                    fetchNewData(fromDay, toDay, olderDates = false, initialLoad = true)
                 } else {
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
+                    if(ActivityCompat.shouldShowRequestPermissionRationale(this, neededPermissions[0])) {
+                        showRationaleDialog(getString(R.string.permissions_rationale_title), getString(R.string.permissions_rationale_message), this)
+                    }else {
+                        showRationaleDialog(getString(R.string.permissions_rationale_title), getString(R.string.permissions_dontask_again_rationale_message), object : PermissionsRationaleDialog.DialogListener {
+
+                            override fun okClicked(dialog: BaseDialog) {
+                                val intent = Intent()
+                                intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                val uri = Uri.fromParts("package", "kpk.dev.agendaviewer", null)
+                                intent.data = uri
+                                startActivityForResult(intent, settingsActivityRequestCode)
+                            }
+
+                            override fun cancelClicked() {
+                                finish()
+                            }
+                        })
+                    }
                 }
                 return
             }
         }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(requestCode == settingsActivityRequestCode) {
+            askForCalendarPermission()
+        }
+    }
+
+    private fun showRationaleDialog(title: String, message: String, dialogListener: PermissionsRationaleDialog.DialogListener) {
+        val args = Bundle()
+        args.putString(BaseDialog.TITLE_ARG_KEY, title)
+        args.putString(BaseDialog.MESSAGE_ARG_KEY, message )
+        PermissionsRationaleDialog.getInstance(args, dialogListener).show(supportFragmentManager, PermissionsRationaleDialog::class.java.simpleName)
+    }
+
     override fun getLayoutId(): Int = R.layout.activity_main
+
+    override fun okClicked(dialog: BaseDialog) {
+        askForCalendarPermission()
+    }
+
+    override fun cancelClicked() {
+        finish()
+    }
 }
